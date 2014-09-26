@@ -15,6 +15,15 @@ python c:\ie\ark\Install\setup.py -quiet
 
 cp "C:\ie\ark\bin\HardUpdate.lnk" "C:\Users\%USERNAME%\Desktop\HardUpdate.lnk"
 
+workstation,ec2 pip uninstall GitPython -y
+ec2,workstation pip install GitPython==0.3.2.RC1
+
+rendernode,ec2 DONTEXECUTEORERROR
+
+workstation,renderndoe   python c:\ie\ark\Install\toolsSetup.py -quiet
+
+workstation cp "C:\ie\daemon\testFile" "C:\Users\%USERNAME%\Desktop\HardUpdate.lnk"
+
 
 
 # Daemon Command System

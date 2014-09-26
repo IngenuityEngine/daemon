@@ -134,7 +134,6 @@ Desktop.ini
 # Plugins
 *.egg
 *.egg-info
-dist
 eggs
 parts
 var
@@ -174,3 +173,7 @@ build/docs
 public/js/main.js
 public/css/base.css
 shared/compiled/templates.js
+
+# daemon
+build
+dist
