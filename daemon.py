@@ -5,7 +5,8 @@ import ctypes
 
 import ieInit
 ieInit.init()
-import ieGlobals
+import settingsManager
+globalSettings = settingsManager.globalSettings()
 
 errCount = 0
 
@@ -32,7 +33,7 @@ def update():
 	commands = getCommands()
 	commands = [getCommandInfo(c) for c in commands]
 	for compTypes, cmd, command in commands:
-		if ieGlobals.COMPUTER_TYPE in compTypes:
+		if globalSettings.COMPUTER_TYPE in compTypes:
 			try:
 				print 'Executing %s.' % cmd
 				err = os.system(cmd)
