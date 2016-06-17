@@ -7,8 +7,8 @@ import time
 import ctypes
 
 # Our modules (TODO: does ieInit even point to anything?)
-import ieInit
-ieInit.init()
+# import ieInit
+# ieInit.init()
 import settingsManager
 globalSettings = settingsManager.globalSettings()
 
