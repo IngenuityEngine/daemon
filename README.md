@@ -3,8 +3,6 @@ daemon
 
 Simple daemon that listens for and runs commands
 
-
-
 Example commands:
 
 pip uninstall GitPython -y
@@ -71,3 +69,13 @@ Implementation
 	- enabled
 	- priority:
 		order in which commands will be run, highest first
+
+Current State
+- on runDaemon
+	- init, and updated every 15 ms
+	- errCount tracked
+	- get (read) commands from ../test/commands.txt file and filter
+	- for all compTypes, cmd, commands in commands: try executing with os.system(cmd)
+		- if not err, clear the command (erase from commands.txt (?))
+		-else log and process errors
+
