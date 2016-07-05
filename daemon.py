@@ -6,9 +6,9 @@ import sys
 import time
 import ctypes
 
-# Our modules (TODO: does ieInit even point to anything?)
-# import ieInit
-# ieInit.init()
+# Our modules (TODO: does ieInit exist?)
+import arkInit
+arkInit.init()
 import settingsManager
 globalSettings = settingsManager.globalSettings()
 
