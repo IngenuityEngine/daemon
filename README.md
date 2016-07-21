@@ -18,7 +18,7 @@ ec2,workstation pip install GitPython==0.3.2.RC1
 
 rendernode,ec2 DONTEXECUTEORERROR
 
-workstation,renderndoe   python c:\ie\ark\Install\toolsSetup.py -quiet
+workstation,rendernode   python c:\ie\ark\Install\toolsSetup.py -quiet
 
 workstation cp "C:\ie\daemon\testFile" "C:\Users\%USERNAME%\Desktop\HardUpdate.lnk"
 
