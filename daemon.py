@@ -1,8 +1,10 @@
 # Daemon Simple daemon that listens for and runs commands
+# For cross-platform compatability, python commands recommended but not required
+# possible computer types are 'workstation', 'render', 'develop'
+# multiple computer types permitted per command
 
 # Modules
-# import os
-# import sys
+import sys
 import time
 
 # Our modules
@@ -12,10 +14,14 @@ import settingsManager
 globalSettings = settingsManager.globalSettings()
 from database import Database
 import cOS
+import arkUtil
+currentComputerSettings = settingsManager.databaseSettings(
+	'daemon',
+	globalSettings.UNIQUE_NAME)
 
 # Global vars
 database = Database()
-errCount = 0
+python = globalSettings.ARK_PYTHON
 
 # Function: init()
 # Set up daemon
@@ -23,13 +29,25 @@ def init():
 	# Connect to Caretaker Database
 	database.connect()
 
+	# Set lastRun and failedJobs to defaults - epoch and empty list
+	currentComputerSettings.set('lastRun', 0).save()
+	currentComputerSettings.set('failedJobs', []).save()
+
 # Function: getCommands()
 # Reads commmand info dicts from Caretaker
-# stripping whitespace characters from beginning and end of string
 # Inputs: none
-# Outputs: filtered comands
+# Outputs: commands
 def getCommands():
-	commandDicts = database.find('command').execute()
+	lastRun = currentComputerSettings.get('lastRun')
+	# if lastRun is none, first time daemon being run, set to epoch
+	if not lastRun:
+		lastRun = 0
+		currentComputerSettings.set('lastRun', lastRun).save()
+	commandDicts = database.find('command') \
+							.sort('priority', 'desc') \
+							.where('enabled', 'is', True) \
+							.where('updated', 'greater than', lastRun) \
+							.execute()
 	return commandDicts
 
 # Function: getCommandInfo(command)
@@ -44,97 +62,104 @@ def getCommandInfo(commandDict):
 	# remove whitespace and parse into command list
 	rawCommand.strip()
 	commandList = rawCommand.split()
+	# If path a command in list, ensure normalized
+	for item in commandList:
+		item = cOS.normalizePath(item)
 	# Save original raw command (now w/o extra whitespace)
 	rawCommand = ' '.join(commandList)
 	return commandList, rawCommand, commandDict
 
 # Function: update()
 # Gets commands and parses command info for all commands in file
-# Executes all valid commands and clears from commands file
+# Executes all valid commands and handles any errors
+# Sets lastRun to current timestamp
 # Inputs: none
 # Outputs: none, prints executed commands to console
 def update():
-	print '****UPDATE****'
+	print '\n================UPDATING================='
 	rawCommands = getCommands()
 	# If no commands, pass
 	if not rawCommands:
+		print '\nNo new commands to evaluate. Passing...'
 		return
 
+	print '\nDaemon running on computer \'%s\' of type \'%s\'' % (globalSettings.COMPUTER_NAME, globalSettings.COMPUTER_TYPE)
+
 	commands = [getCommandInfo(c) for c in rawCommands]
-	print '****Commands****'
-	for command in commands:
-		print 'command %s with list %s and raw command %s' % (command[2]['name'], command[0], command[1])
-	print 'computer is type ' + globalSettings.COMPUTER_TYPE
-	# possible comptuer types are 'workstation' or 'render'
-	# TODO: add develop type
 
 	for commandList, rawCommand, commandDict in commands:
 		name = commandDict['name']
-		data = None
-		if 'data' in commandDict:
-			data = commandDict['data']
+		print '\nEvaluating command \'%s\' with raw command:\n\"%s\"' % (name, rawCommand)
 		compTypes = commandDict['type']
 
+		# possible computer types are 'workstation', 'render', 'develop'
 		if globalSettings.COMPUTER_TYPE in compTypes:
 			# getCommandOutput returns (STDOUT, STDERR)
 			out, err = cOS.getCommandOutput(commandList)
 			if err:
-				print '\nerror:\n', err
+				error(commandDict, err)
 			else:
-				print '\nout: \n', out
-				print '\nBackup %s complete.\n' % database
+				print '\nSuccess:\n', out
+		# if computer not in types, pass. timestamp will consider this executed
 		else:
-			print 'Command %s not applicable for this computer type %s, passing...' % (name, globalSettings.COMPUTER_TYPE)
+			print '\nCommand %s not applicable for this computer type %s, passing...' % (name, globalSettings.COMPUTER_TYPE)
 			continue
-			# TODO: don't actually clear it
-			# essentially just pretend to execute. timestamp will deal with it anyway
+	# Record time as last run
+	currentComputerSettings.set('lastRun', currentMilliTime()).save()
+	# TODO: use database time instead of local time
+	# currentComputerSettings.set('lastRun', database.getTime()).save()
 
-# 	for compTypes, cmd, command in commands:
-# 		if globalSettings.COMPUTER_TYPE in compTypes:
-# 			try:
-# 				print 'Executing %s.' % cmd
-# 				err = os.system(cmd)
-# 				if (not err):
-# 					clear(command)
-# 				else:
-# 					error(cmd, err)
-# 			except:
-# 				error(cmd, ctypes.get_errno())
-# 		else:
-# 			clear(command)
+# Function: error(cmdInfo, err)
+# Prints err
+# Inputs: cmdInfo, command to process, and err, received error
+# Outputs: none, prints error information to console, adds failed command to failedCommands list
+def error(cmdInfo, err):
+	# print error
+	name = cmdInfo['name']
+	print >> sys.stderr, '\nError on \'%s\':\n%s' % (name, err)
 
-# # Function: clear(command)
-# # Rewrites completed or inapplicable commands to commands.txt file
-# # Inputs: command, called from update()
-# # Outputs: none, writes to commands.txt
-# def clear(command):
-# 	f=open('../test/commands.txt')
-# 	lines = f.readlines()
-# 	f.close()
-# 	f = open('../test/commands.txt', 'w')
-# 	for line in lines:
-# 		if (line.strip() and normalizeLine(line) != normalizeLine(command)):
-# 			f.write(line)
-# 	f.close()
+	# Add failed job to list of failed jobs
+	failedJobs = currentComputerSettings.get('failedJobs')
+	failedJobs = arkUtil.ensureArray(failedJobs)
 
-# # Function: normalizeLine(line)
-# # Helper function to remove newlines, if they exist
-# # Inputs: line to normalize
-# # Outputs: normalized line
-# def normalizeLine(line):
-# 	if (line[-1] == '\n'):
-# 		return line[:-1]
-# 	return line
+	# if name not in failedJobs:
+	if name not in failedJobs:
+		print '\nAdding failed job \'%s\' to failedJobs list' % name
+		failedJobs.append(name)
+	currentComputerSettings.set('failedJobs', failedJobs).save()
 
-# # Function: error(cmd, errno)
-# # Maintains the global errCount, incrementing
-# # and printing passed error to console
-# # Inputs: cmd, command to process, and errno, received error
-# # Outputs: none, prints error process, number, and total error count to console
-# def error(cmd, errno):
-# 	global errCount
-# 	errCount += 1
-# 	print >> sys.stderr, 'Error on %s.  Error number %d.  Number of errors is: %d.' % (cmd, errno, errCount)
+# Function: runFailed()
+# Gets and runs all failed jobs
+# Inputs: none
+# Outputs: none, prints information to console
+def runFailed():
+	print '\n=============RETRYING FAILED============='
+	failedJobs = currentComputerSettings.get('failedJobs')
+	# If no commands, pass
+	if not failedJobs:
+		print '\nNo failed jobs to retry. Passing...'
+		return
+
+	print '\nRetrying failed jobs %s' % failedJobs
+	for job in failedJobs:
+		command = database.findOne('command').where('name', 'is', job).execute()
+		commandList, rawCommand, commandDict = getCommandInfo(command)
+
+		name = commandDict['name']
+		print '\nEvaluating failed command \'%s\' with raw command:\n\"%s\"' % (name, rawCommand)
+
+		# If added to failed jobs, already applicable to this computer
+		out, err = cOS.getCommandOutput(commandList)
+		if err:
+			error(commandDict, err)
+		else:
+			print out
+
+# currentMilliTime()
+# Helper to get current timestamp in millisecond format
+# Returns 13 digit timestamp, compatible with database's updated timestamps
+def currentMilliTime():
+	return int(round(time.time()*1000))
 
 # Function: runDaemon()
 # Initializes and loops the daemon's update function, every 15 ms
@@ -142,8 +167,13 @@ def update():
 # Outputs: none
 def runDaemon():
 	init()
+	count = 0
 	while (1):
 		update()
+		count += 1
+		if count > 4: # once time.sleep changed to 60, change this to 10
+			runFailed()
+			count = 0
 		time.sleep(15)
 
 # Main
