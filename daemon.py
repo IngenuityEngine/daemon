@@ -102,7 +102,7 @@ def update():
 				print '\nSuccess:\n', out
 		# if computer not in types, pass. timestamp will consider this executed
 		else:
-			print '\nCommand %s not applicable for this computer type %s, passing...' % (name, globalSettings.COMPUTER_TYPE)
+			print '\nCommand \'%s\' not applicable for this computer type %s, passing...' % (name, globalSettings.COMPUTER_TYPE)
 			continue
 	# Record time as last run
 	currentComputerSettings.set('lastRun', currentMilliTime()).save()

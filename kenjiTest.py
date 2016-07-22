@@ -5,6 +5,8 @@ from database import Database
 import settingsManager
 globalSettings = settingsManager.globalSettings()
 
+# comment
+
 database = Database()
 database = database.connect()
 

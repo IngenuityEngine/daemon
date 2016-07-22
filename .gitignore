@@ -177,3 +177,4 @@ shared/compiled/templates.js
 # daemon
 build
 dist
+kenjiTest.py
