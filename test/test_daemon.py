@@ -36,7 +36,7 @@ class test(tryout.TestSuite):
 				'command': 'echo \'hello\'',
 				'type': ['developer'],
 				'priority': 40,
-				'enabled': True,
+				'enabled': False,
 			}).execute()
 
 		print self.database.create(
