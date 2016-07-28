@@ -92,7 +92,7 @@ def update():
 		print '\nEvaluating command \'%s\' with raw command:\n\"%s\"' % (name, rawCommand)
 		compTypes = commandDict['type']
 
-		# possible computer types are 'workstation', 'render', 'develop'
+		# possible computer types are 'workstation', 'render', 'developer'
 		if globalSettings.COMPUTER_TYPE in compTypes:
 			# getCommandOutput returns (STDOUT, STDERR)
 			out, err = cOS.getCommandOutput(commandList)
@@ -143,6 +143,9 @@ def runFailed():
 	print '\nRetrying failed jobs %s' % failedJobs
 	for job in failedJobs:
 		command = database.findOne('command').where('name', 'is', job).execute()
+		if not command:
+			print 'Failed job no longer exists, passing...'
+			continue
 		commandList, rawCommand, commandDict = getCommandInfo(command)
 
 		name = commandDict['name']
