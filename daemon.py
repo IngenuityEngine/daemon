@@ -22,6 +22,8 @@ currentComputerSettings = settingsManager.databaseSettings(
 # Global vars
 database = Database()
 python = globalSettings.ARK_PYTHON
+timeInterval = globalSettings.TIME_INTERVAL
+failedInterval = globalSettings.FAILED_INTERVAL
 
 # Function: init()
 # Set up daemon
@@ -96,6 +98,11 @@ def update():
 		if globalSettings.COMPUTER_TYPE in compTypes:
 			process = cOS.startSubprocess(commandList, shell=True)
 			out, err = cOS.waitOnProcess(process)
+			if out:
+				print 'OUT:', out
+			if err:
+				print 'ERR:', err
+				error(commandDict, err)
 		# if computer not in types, pass. timestamp will consider this executed
 		else:
 			print '\nCommand \'%s\' not applicable for this computer type %s, passing...' % (name, globalSettings.COMPUTER_TYPE)
@@ -145,7 +152,7 @@ def runFailed():
 		commandList, rawCommand, commandDict = getCommandInfo(command)
 
 		name = commandDict['name']
-		print '\nEvaluating failed command \'%s\' with raw command:\n\"%s\"' % (name, rawCommand)
+		print '\nRetrying failed command \'%s\' with raw command:\n\"%s\"' % (name, rawCommand)
 
 		# If added to failed jobs, already applicable to this computer
 		out, err = cOS.getCommandOutput(commandList)
@@ -166,14 +173,13 @@ def currentMilliTime():
 # Outputs: none
 def runDaemon():
 	init()
-	count = 0
+	startTime = time.time()
 	while (1):
 		update()
-		count += 1
-		if count > 4: # once time.sleep changed to 60, change this to 10
+		if (time.time() - startTime) > failedInterval:
 			runFailed()
-			count = 0
-		time.sleep(15)
+			startTime = time.time()
+		time.sleep(timeInterval)
 
 # Main
 if __name__ == '__main__':
