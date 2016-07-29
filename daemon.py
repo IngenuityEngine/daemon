@@ -94,12 +94,8 @@ def update():
 
 		# possible computer types are 'workstation', 'render', 'developer'
 		if globalSettings.COMPUTER_TYPE in compTypes:
-			# getCommandOutput returns (STDOUT, STDERR)
-			out, err = cOS.getCommandOutput(commandList)
-			if err:
-				error(commandDict, err)
-			else:
-				print '\nSuccess:\n', out
+			process = cOS.startSubprocess(commandList, shell=True)
+			out, err = cOS.waitOnProcess(process)
 		# if computer not in types, pass. timestamp will consider this executed
 		else:
 			print '\nCommand \'%s\' not applicable for this computer type %s, passing...' % (name, globalSettings.COMPUTER_TYPE)
