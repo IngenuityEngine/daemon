@@ -98,10 +98,7 @@ def update():
 		if globalSettings.COMPUTER_TYPE in compTypes:
 			process = cOS.startSubprocess(commandList, shell=True)
 			out, err = cOS.waitOnProcess(process)
-			if out:
-				print 'OUT:', out
 			if err:
-				print 'ERR:', err
 				error(commandDict, err)
 		# if computer not in types, pass. timestamp will consider this executed
 		else:
@@ -155,11 +152,10 @@ def runFailed():
 		print '\nRetrying failed command \'%s\' with raw command:\n\"%s\"' % (name, rawCommand)
 
 		# If added to failed jobs, already applicable to this computer
-		out, err = cOS.getCommandOutput(commandList)
+		process = cOS.startSubprocess(commandList, shell=True)
+		out, err = cOS.waitOnProcess(process)
 		if err:
 			error(commandDict, err)
-		else:
-			print out
 
 # currentMilliTime()
 # Helper to get current timestamp in millisecond format
