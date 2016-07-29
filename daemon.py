@@ -6,6 +6,7 @@
 # Modules
 import sys
 import time
+import os
 
 # Our modules
 import arkInit
@@ -28,6 +29,7 @@ failedInterval = globalSettings.FAILED_INTERVAL
 # Function: init()
 # Set up daemon
 def init():
+	print 'Daemon PID:', os.getpid()
 	# Connect to Caretaker Database
 	database.connect()
 
